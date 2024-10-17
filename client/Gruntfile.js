@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
   let fs = require("fs"),
       path = require("path"),
+      sass = require('node-sass'),
       superagent = require("superagent"),
       Gettext = require("node-gettext");
 
@@ -17,11 +18,17 @@ module.exports = function(grunt) {
     },
 
     copy: {
+      bootstrap: {
+        expand: true,
+        cwd: 'node_modules/bootstrap/scss/',
+        src: '**',
+        dest: 'app/scss/',
+      },
       build: {
         files: [
           {dest: "tmp/", cwd: "dist", src: ["**"], expand: true},
           {dest: "tmp/css/", cwd: "dist", src: ["fonts.css*"], expand: true, flatten: true},
-          {dest: "tmp/css/", cwd: "dist", src: ["styles-*"], expand: true, flatten: true},
+          {dest: "tmp/css/", cwd: "dist", src: ["styles.css*"], expand: true, flatten: true},
           {dest: "tmp/js/", cwd: "dist", src: ["main.js*"], expand: true, flatten: true},
           {dest: "tmp/js/", cwd: "dist", src: ["polyfills.js*"], expand: true, flatten: true},
           {dest: "tmp/js/", cwd: "dist", src: ["runtime.js*"], expand: true, flatten: true},
@@ -140,6 +147,32 @@ module.exports = function(grunt) {
           input: "_key:y"
         }
       }
+    },
+
+    sass: {
+      options: {
+        implementation: require('sass'),
+        outputStyle: 'expanded',
+        includePaths: ['node_modules']
+      },
+      dist: {
+        files: {
+          'app/css/bootstrap-custom.css': 'app/scss/bootstrap-custom.scss',
+        }
+      }
+    },
+
+    // PostCSS processing
+    postcss: {
+      build_custom_bootstrap_with_ltr_rtl_combined: {
+        options: {
+          processors: [
+            require('postcss-rtlcss')()
+          ]
+        },
+        src: 'app/css/bootstrap-custom.css',
+        dest: 'app/css/bootstrap-custom-ltr-rtl-combined.css'
+      },
     },
 
     shell: {
@@ -765,8 +798,8 @@ module.exports = function(grunt) {
   // Run this task to fetch translations from transifex and create application files
   grunt.registerTask("updateTranslations", ["fetchTranslations", "makeAppData", "verifyAppData"]);
 
-  grunt.registerTask("build", ["clean", "shell:npx_build", "copy:build", "string-replace", "copy:package", "clean:tmp"]);
+  grunt.registerTask("build", ["clean", "sass", "postcss", "shell:npx_build", "copy:build", "string-replace", "copy:package", "clean:tmp"]);
  
-  grunt.registerTask("build_and_instrument", ["clean", "shell:npx_build_and_instrument", "copy:build", "string-replace", "copy:package", "clean:tmp"]);
+  grunt.registerTask("build_and_instrument", ["clean", "sass", "postcss", "shell:npx_build_and_instrument", "copy:build", "string-replace", "copy:package", "clean:tmp"]);
 };
 
